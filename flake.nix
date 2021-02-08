@@ -18,14 +18,16 @@
 
     packages.x86_64-linux.ort = pkgs.callPackage ./oss-review-toolkit-ort {};
     packages.x86_64-linux.scancode = pkgs.callPackage ./nexB-scancode-toolkit {};
+    packages.x86_64-linux.tern = pkgs.callPackage ./tern-tools-tern {};
 
     packages.x86_64-linux.license-compliance-toolbox = pkgs.buildEnv {
       name = "license-compliance-toolbox";
       paths = with self.packages.x86_64-linux; [
         ort
         scancode
-        # (pkgs.writeScriptBin "ort.sh" (builtins.readFile ./ort.sh))
-        # (pkgs.writeScriptBin "scancode.sh" (builtins.readFile ./scancode.sh))
+        tern
+        (pkgs.writeScriptBin "fossology.sh" (builtins.readFile ./fossology.sh))
+        (pkgs.writeScriptBin "dependencytrac.sh" (builtins.readFile ./dependencytrac.sh))
       ];
     };
 

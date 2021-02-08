@@ -117,4 +117,7 @@ if [[  $# -ge 1 ]]; then
     else
         runScancode $@
     fi
+    times
+else
+    help
 fi
