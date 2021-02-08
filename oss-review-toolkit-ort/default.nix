@@ -6,7 +6,7 @@
 }:
 
 let
-  rev = let lock = builtins.fromJSON (builtins.readFile ../../flake.lock);
+  rev = let lock = builtins.fromJSON (builtins.readFile ../flake.lock);
         in lock.nodes.ort.locked.rev;
   fixedOutputHashesJSON = builtins.fromJSON (builtins.readFile (./. + ("/" + rev + ".fixedOutputSha256.json")));
   srcFixedOutputSha256 = fixedOutputHashesJSON.src;
