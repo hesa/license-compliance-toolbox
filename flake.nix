@@ -17,12 +17,12 @@
   in {
 
     packages.x86_64-linux.ort = pkgs.callPackage ./oss-review-toolkit-ort {};
+    packages.x86_64-linux.scancode = pkgs.callPackage ./nexB-scancode-toolkit {};
     packages.x86_64-linux.license-compliance-toolbox = pkgs.buildEnv {
       name = "license-compliance-toolbox";
-      paths = with self.packages.x86_64-linux; [ ort ];
+      paths = with self.packages.x86_64-linux; [ ort scancode ];
     };
 
     defaultPackage.x86_64-linux = self.packages.x86_64-linux.license-compliance-toolbox;
-
   };
 }

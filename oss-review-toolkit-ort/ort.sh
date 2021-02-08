@@ -74,7 +74,7 @@ buildImageIfMissing() {
     if [[ "$(docker images -q $tag 2> /dev/null)" == "" ]]; then
         if [[ "$(docker images -q $baseTag 2> /dev/null)" == "" ]]; then
             ORT=$(mktemp -d)
-            trap 'rm -rf $ORT' EXIT
+            trap "rm -rf $ORT" EXIT
             git clone https://github.com/oss-review-toolkit/ort $ORT
 
             docker build \
