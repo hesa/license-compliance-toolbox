@@ -17,7 +17,8 @@
   in {
 
     packages.x86_64-linux.ort = pkgs.callPackage ./oss-review-toolkit-ort {};
-    packages.x86_64-linux.scancode = pkgs.callPackage ./nexB-scancode-toolkit {};
+    packages.x86_64-linux.scancode = pkgs.writeScriptBin "scancode.sh" (builtins.readFile ./nexB-scancode-toolkit/scancode.sh);
+
     packages.x86_64-linux.license-compliance-toolbox = pkgs.buildEnv {
       name = "license-compliance-toolbox";
       paths = with self.packages.x86_64-linux; [ ort scancode ];
