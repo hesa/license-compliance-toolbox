@@ -81,7 +81,6 @@ in stdenv.mkDerivation {
       --prefix PATH ":" "${python3}/bin" \
       --prefix PATH ":" "${python3Packages.virtualenv}/bin"
       # --prefix PATH : "''${lib.makeBinPath [ git mercurial cvs licensee ruby python3 python3Packages ]}"
-
   '';
 
   stripDebugList = [ "." ];
