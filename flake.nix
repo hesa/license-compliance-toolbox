@@ -7,11 +7,12 @@
   in {
 
     packages.x86_64-linux.ort = pkgs.callPackage ./oss-review-toolkit-ort {};
-
-    defaultPackage.x86_64-linux = pkgs.buildEnv {
+    packages.x86_64-linux.license-compliance-toolbox = pkgs.buildEnv {
       name = "license-compliance-toolbox";
       paths = with self.packages.x86_64-linux; [ ort ];
     };
+
+    defaultPackage.x86_64-linux = self.packages.x86_64-linux.license-compliance-toolbox;
 
   };
 }

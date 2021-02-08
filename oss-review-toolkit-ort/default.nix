@@ -87,7 +87,7 @@ in stdenv.mkDerivation {
 
   passthru.deps = deps;
 
-  meta = with stdenv.lib; {
+  meta = with lib; {
     homepage = https://github.com/oss-review-toolkit/ort;
     license = "Apache-2.0";
     description = "The OSS Review Toolkit (ORT) aims to assist with the tasks that commonly need to be performed in the context of license compliance checks, especially for (but not limited to) Free and Open Source Software dependencies.";
