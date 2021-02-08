@@ -16,10 +16,12 @@ let
     pname = "oss-review-toolkit-deps";
     inherit version;
 
-    src = fetchgit {
+    src = let
+      jsonFile = ./. + "/ort.json";
+      json = builtins.fromJSON (builtins.readFile jsonFile);
+    in fetchgit {
       url = "https://github.com/oss-review-toolkit/ort";
-      rev = "76986516f8d72ff5aa343cd8eaf565c3b97531b4";
-      sha256 = "17f4g6xw5ipj36p9pnyk9mksiq12aqqrb2k6vzi33cahwyjrmr4i";
+      inherit (json) rev sha256;
       leaveDotGit = true;
       fetchSubmodules = true;
       deepClone = true;
@@ -51,7 +53,7 @@ let
     outputHashMode = "recursive";
     outputHash =
       # Downloaded AWT jars differ by platform.
-      if stdenv.system == "x86_64-linux" then "03vicn0vsx8ggj8xr7jg4bqnq2hahmrb9gkw99q78y9g6pl3f0xy"
+      if stdenv.system == "x86_64-linux" then "1000000000000000000000000000000000000000000000000000"
       else if stdenv.system == "i686-linux" then throw "Unsupported platform"
       else throw "Unsupported platform";
   };
