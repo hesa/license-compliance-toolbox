@@ -1,8 +1,18 @@
 {
   description = "license-compliance-toolbox flake";
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    flake-compat = {
+      url = "github:edolstra/flake-compat";
+      flake = false;
+    };
+    ort = {
+      url = "github:oss-review-toolkit/ort";
+      flake = false;
+    };
+  };
 
-  outputs = { self, nixpkgs }: let
+  outputs = { self, nixpkgs , ... }: let
     pkgs = import nixpkgs { system = "x86_64-linux"; };
   in {
 

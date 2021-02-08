@@ -6,9 +6,11 @@
 }:
 
 let
-  rev = "fa95a4eb8ec1d21c59ad4144575b0f219ad192be";
-  srcFixedOutputSha256 = "0pmICW0OeFzmQaSKruWJJF3XSLUibTWjhpXsKkNKD+E=";
-  installFixedOutputSha256 = "1wgzwvghh6nws7nvfivpqp6j9nfr0sig996690wmsiw1b0zvvpny";
+  rev = let lock = builtins.fromJSON (builtins.readFile ../flake.lock);
+        in lock.nodes.ort.locked.rev;
+  fixedOutputHashesJSON = builtins.fromJSON (builtins.readFile (./. + ("/" + rev + ".fixedOutputSha256.json")));
+  srcFixedOutputSha256 = fixedOutputHashesJSON.src;
+  installFixedOutputSha256 = fixedOutputHashesJSON.install;
 
   gradle_ = (gradleGen.override {
     java = jdk11;
