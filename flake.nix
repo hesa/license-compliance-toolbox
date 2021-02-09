@@ -20,6 +20,7 @@
       ort = pkgs.callPackage ./oss-review-toolkit-ort {};
       scancode = pkgs.callPackage ./nexB-scancode-toolkit {};
       tern = pkgs.callPackage ./tern-tools-tern {};
+      scanoss = pkgs.callPackage ./scanoss-scanner {};
     };
 
     packages.x86_64-linux.license-compliance-toolbox = pkgs.buildEnv {
@@ -28,6 +29,7 @@
         ort
         scancode
         tern
+        scanoss
         (pkgs.writeScriptBin "fossology.sh" (builtins.readFile ./fossology.sh))
         (pkgs.writeScriptBin "dependencytrac.sh" (builtins.readFile ./dependencytrac.sh))
 
