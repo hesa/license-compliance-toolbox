@@ -16,9 +16,11 @@
     pkgs = import nixpkgs { system = "x86_64-linux"; };
   in {
 
-    packages.x86_64-linux.ort = pkgs.callPackage ./oss-review-toolkit-ort {};
-    packages.x86_64-linux.scancode = pkgs.callPackage ./nexB-scancode-toolkit {};
-    packages.x86_64-linux.tern = pkgs.callPackage ./tern-tools-tern {};
+    packages.x86_64-linux = {
+      ort = pkgs.callPackage ./oss-review-toolkit-ort {};
+      scancode = pkgs.callPackage ./nexB-scancode-toolkit {};
+      tern = pkgs.callPackage ./tern-tools-tern {};
+    };
 
     packages.x86_64-linux.license-compliance-toolbox = pkgs.buildEnv {
       name = "license-compliance-toolbox";
@@ -28,6 +30,38 @@
         tern
         (pkgs.writeScriptBin "fossology.sh" (builtins.readFile ./fossology.sh))
         (pkgs.writeScriptBin "dependencytrac.sh" (builtins.readFile ./dependencytrac.sh))
+
+        (pkgs.writeShellScriptBin "tdd.sh" ''
+getOutFolder() {
+    local input="$1"
+    local workdir="$(readlink -f "$input")"
+    local out="''${workdir%_tdd}_tdd"
+    mkdir -p "$out"
+    echo "$out"
+}
+
+getSourceDir() {
+    local input="$1"
+    local out="$(getOutFolder "$input")"
+    local source="$out/$(basename "$input")"
+    if [[ -d "$input" ]]; then
+        cp -r "$input" "$source"
+        (>&2 ${scancode}/bin/scancode.sh -ex "$source")
+    fi
+    echo "$source"
+}
+
+main() {
+    local input="$1"
+    local out="$(getOutFolder "$input")"
+    local sourceDir="$(getSourceDir "$input")"
+
+    ${scancode}/bin//scancode.sh "$sourceDir" || true
+    ${ort}/bin/ort.sh all "$sourceDir" || true
+}
+
+main "$@"
+'')
       ];
     };
 
