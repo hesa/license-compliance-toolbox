@@ -319,8 +319,10 @@ fi
 if [[ $# = 0 ]]; then
     help
 elif [[ "$1" == "rm-docker-images" ]]; then
-    docker rmi "$tag"
-    docker rmi "$baseTag"
+    docker rmi "$tag" || true
+    docker rmi "$baseTag" || true
+    buildImageIfMissing
+    exit 0
 elif [[ "$1" == "all" ]]; then
     shift
     doAll "$@"
