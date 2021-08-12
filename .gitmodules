@@ -7,3 +7,6 @@
 [submodule "vinland-technology-compliance-tool-collection"]
 	path = vinland-technology-compliance-tool-collection
 	url = https://github.com/vinland-technology/compliance-tool-collection
+[submodule "vinland-technology-scancode-manifestor"]
+	path = vinland-technology-scancode-manifestor
+	url = https://github.com/vinland-technology/scancode-manifestor.git
