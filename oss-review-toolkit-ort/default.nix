@@ -1,20 +1,16 @@
 { lib, stdenv, fetchgit, jdk11, gradleGen, nodejs-12_x, makeWrapper
 # runtime requirements for ort
-, git, mercurial, cvs
-, licensee, ruby
-, python3, python3Packages
-}:
+, git, mercurial, cvs, licensee, ruby, python3, python3Packages }:
 
 let
   rev = let lock = builtins.fromJSON (builtins.readFile ../flake.lock);
-        in lock.nodes.ort.locked.rev;
-  fixedOutputHashesJSON = builtins.fromJSON (builtins.readFile (./. + ("/" + rev + ".fixedOutputSha256.json")));
+  in lock.nodes.ort.locked.rev;
+  fixedOutputHashesJSON = builtins.fromJSON
+    (builtins.readFile (./. + ("/" + rev + ".fixedOutputSha256.json")));
   srcFixedOutputSha256 = fixedOutputHashesJSON.src;
   installFixedOutputSha256 = fixedOutputHashesJSON.install;
 
-  gradle_ = (gradleGen.override {
-    java = jdk11;
-  }).gradle_6_8;
+  gradle_ = (gradleGen.override { java = jdk11; }).gradle_6_8;
 
   version = "master_${rev}";
 
@@ -54,9 +50,10 @@ let
 
     outputHashAlgo = "sha256";
     outputHashMode = "recursive";
-    outputHash = if stdenv.system == "x86_64-linux"
-                 then installFixedOutputSha256
-                 else throw "Unsupported platform";
+    outputHash = if stdenv.system == "x86_64-linux" then
+      installFixedOutputSha256
+    else
+      throw "Unsupported platform";
   };
 
 in stdenv.mkDerivation {
@@ -69,7 +66,7 @@ in stdenv.mkDerivation {
 
   buildPhase = ''
     cp ${./ort.sh} ./bin/ort.sh
-    sed -i -e 's%=ort%='"$out/bin/ort"'%' ./bin/ort.sh
+    sed -i -e 's%^ort=ort%ort='"$out/bin/ort"'%' ./bin/ort.sh
     rm ./bin/ort.bat
   '';
   installPhase = ''
@@ -77,6 +74,7 @@ in stdenv.mkDerivation {
     cp -r ./* $out
     wrapProgram "$out/bin/ort" \
       --set LANG en_US.UTF-8 \
+      --set JAVA_HOME "${jdk11}/lib/openjdk" \
       --prefix PATH ":" "${git}/bin" \
       --prefix PATH ":" "${mercurial}/bin" \
       --prefix PATH ":" "${cvs}/bin" \
@@ -91,9 +89,10 @@ in stdenv.mkDerivation {
   passthru.deps = install;
 
   meta = with lib; {
-    homepage = https://github.com/oss-review-toolkit/ort;
+    homepage = "https://github.com/oss-review-toolkit/ort";
     license = "Apache-2.0";
-    description = "The OSS Review Toolkit (ORT) aims to assist with the tasks that commonly need to be performed in the context of license compliance checks, especially for (but not limited to) Free and Open Source Software dependencies.";
+    description =
+      "The OSS Review Toolkit (ORT) aims to assist with the tasks that commonly need to be performed in the context of license compliance checks, especially for (but not limited to) Free and Open Source Software dependencies.";
     maintainers = with maintainers; [ ];
     platforms = platforms.linux;
   };

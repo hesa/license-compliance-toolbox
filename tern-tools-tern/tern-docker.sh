@@ -8,8 +8,8 @@ tag=mytern:latest
 
 export DOCKER_BUILDKIT=1
 
-# export format=json
-export format=yaml
+export format=json
+# export format=yaml
 
 helpMsg() {
     cat<<EOF
@@ -18,8 +18,10 @@ usage:
   $0 -d path/to/Dockerfile [path/To/Out/Folder]
   $0 -i image:tag [path/To/Out/Folder]
   $0 path/To/Project/Folder
+  $0 -it
   $0 --help
 EOF
+    docker run  --rm $tag  report --help
 }
 
 #################################################################################
@@ -30,7 +32,7 @@ buildImageIfMissing() {
         git clone https://github.com/tern-tools/tern.git $TERN
 
         docker build \
-            -f "$TERN/docker/Dockerfile" \
+            -f "$TERN/docker/Dockerfile.scancode" \
             -t $tag $TERN
     else
         echo "docker image already build"
@@ -67,7 +69,7 @@ runTernOnImage() {
          -v "${out}":/out \
          -w /out \
          --rm $tag \
-         report -f "$format" -i "$imagename" -o "/out/tern_output_${imagename}.$format";
+         report -x scancode -f "$format" -i "$imagename" -o "/out/tern_output_${imagename}.$format";
      times
      )
     sudo chown $(id -u $USER):$(id -g $USER) "/out/tern_output_${imagename}.$format"
@@ -95,10 +97,25 @@ runTernOnDockerfile() {
          -v "${out}":/out \
          -w /out \
          --rm $tag \
-         report -f "$format" -d "/workdir/$dockerfilename" -o "/out/tern_output.$format";
+         report -x scancode -f "$format" -d "/workdir/$dockerfilename" -o "/out/tern_output.$format";
      times
      )
     sudo chown $(id -u $USER):$(id -g $USER) "$out/tern_output.$format"
+}
+runInteractive () {
+    (set -x;
+     docker run \
+         -it \
+         --privileged \
+         --device /dev/fuse \
+         -v /var/run/docker.sock:/var/run/docker.sock \
+         -v "$workdir:/workdir" \
+         -v "$(pwd)":/out \
+         -w /out \
+         --entrypoint /bin/bash \
+         --rm $tag
+     times
+     )
 }
 
 runTernRecursively() {
@@ -112,8 +129,10 @@ runTernRecursively() {
         while IFS= read -r -d '' dockerfile; do
             outFolder="$out/$(echo "$dockerfile" | sed 's#^./##' | sed 's#/#_#g')"
             mkdir -p "$outFolder"
-            runTernOnDockerfile $dockerfile "$outFolder"
-            sudo chown -R $(id -u $USER):$(id -g $USER) "$outFolder"
+            runTernOnDockerfile "$dockerfile" "$outFolder" || true
+            if [[ -d "$outFolder" ]]; then
+                sudo chown -R "$(id -u "$USER"):$(id -g "$USER")" "$outFolder"
+            fi
         done
 }
 
@@ -126,6 +145,7 @@ case $1 in
     "--rm") shift; docker rmi "$tag";;
     "-d") shift; runTernOnDockerfile "$@";;
     "-i") shift; runTernOnImage "$@";;
+    "-it") shift; runInteractive;;
     "--help") helpMsg ;;
     *) runTernRecursively "$@";;
 esac

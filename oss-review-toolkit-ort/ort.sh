@@ -5,20 +5,22 @@
 set -euo pipefail
 
 DEBUG_LEVEL="--info"
+DOCKERIZE_BY_DEFAULT=false
 baseTag=ort:latest
 tag=myort:latest
 ort=ort
+orth=orth
 
 help() {
     cat <<EOF
     $0 inputFileOrDir [other [ort [args]]]
 
 e.g.
-    $0 short /path/to/folder
-    $0 all /path/to/folder -m gradle
-    $0 analzye /path/to/folder
-    $0 analzye /path/to/folder -m gradle
-    $0 scan /path/to/folder/analyzer-result.json
+    $0 [--dockerize] short /path/to/folder
+    $0 [--dockerize] all /path/to/folder -m gradle
+    $0 [--dockerize] analzye /path/to/folder
+    $0 [--dockerize] analzye /path/to/folder -m gradle
+    $0 [--dockerize] scan /path/to/folder/analyzer-result.json
     $0 ...
     $0 rm-docker-images
 EOF
@@ -38,6 +40,9 @@ prepareDotOrt() {
     done
     cat <<EOF > "$HOME/.ort/dockerHome/.ort/config/ort.conf"
 ort {
+  analyzer {
+    allowDynamicVersions = true
+  }
   scanner {
     storages {
       clearlyDefined {
@@ -46,7 +51,7 @@ ort {
       fileBasedStorage {
         backend {
           localFileStorage {
-            directory = "~/.ort/scanner/scan-results"
+            directory = "${HOME}/.ort/scanner/scan-results"
             compression = false
           }
         }
@@ -55,7 +60,6 @@ ort {
 
     storageReaders: [
       "fileBasedStorage"
-      "clearlyDefined"
     ]
 
     storageWriters: [
@@ -71,6 +75,8 @@ EOF
 ################################################################################
 
 buildImageIfMissing() {
+    export DOCKER_BUILDKIT=1
+
     if [[ "$(docker images -q $tag 2> /dev/null)" == "" ]]; then
         if [[ "$(docker images -q $baseTag 2> /dev/null)" == "" ]]; then
             ORT=$(mktemp -d)
@@ -81,7 +87,7 @@ buildImageIfMissing() {
                 --network=host \
                 -t $baseTag $ORT
         else
-            echo "docker base image already build, at $(docker inspect -f '{{ .Created }}' $baseTag)"
+            >&2 echo "docker base image already build, at $(docker inspect -f '{{ .Created }}' $baseTag)"
         fi
         docker build -t $tag -<<EOF
 FROM $baseTag
@@ -111,20 +117,21 @@ runDockerizedOrt() {
         inputDir="$input"
     fi
 
+    local dockerArgs=("-i" "--rm")
+    dockerArgs+=("-v" "/etc/group:/etc/group:ro" "-v" "/etc/passwd:/etc/passwd:ro" "-u" "$(id -u $USER):$(id -g $USER)")
+    dockerArgs+=("-v" "$HOME/.ort/dockerHome:$HOME")
+    dockerArgs+=("-v" "$inputDir:/workdir")
+    dockerArgs+=("-v" "$output:/out")
+    dockerArgs+=("-w" "/workdir")
+    dockerArgs+=("--net=host")
     local args=($(echo "${@}" | sed "s%$output%/out%g" | sed "s%$inputDir%/workdir%g"))
 
     (set -x;
-     docker run -i \
-            --rm \
-            -v /etc/group:/etc/group:ro -v /etc/passwd:/etc/passwd:ro -u $(id -u $USER):$(id -g $USER) \
-            -v "$HOME/.ort/dockerHome:$HOME" \
-            -v "$inputDir:/workdir" \
-            -v "$output:/out" \
-            -w /workdir \
-            --net=host \
-            "$tag" \
-            "${args[@]}" -i "/workdir/$inputFile" -o /out;
-     times
+     docker run \
+         "${dockerArgs[@]}" \
+         "$tag" \
+         "${args[@]}" -i "/workdir/$inputFile" -o /out;
+     >&2 times
      )
 }
 
@@ -133,13 +140,13 @@ runDockerizedOrt() {
 ################################################################################
 
 runOrt() {
-    local dockerize=false
+    local dockerize=$DOCKERIZE_BY_DEFAULT
     local task="$1"; shift
 
     local input="$(readlink -f "$1")"; shift
     if [[ ! -e "$input" ]]; then
         echo "the input=$input is missing"
-        exit 1
+        return 1
     fi
 
     local output="$input"
@@ -152,7 +159,7 @@ runOrt() {
     local args=("--force-overwrite" "$DEBUG_LEVEL")
     case $task in
         analyze)
-            args+=("analyze" "--clearly-defined-curations" "--output-formats" "JSON,YAML")
+            args+=("-P" "ort.analyzer.allowDynamicVersions=true" "analyze" "--clearly-defined-curations" "--output-formats" "JSON,YAML")
             ;;
 
         download)
@@ -160,12 +167,12 @@ runOrt() {
             ;;
 
         scan)
-            args+=("scan" "--download-dir" "$output/downloads")
+            args+=("scan")
             dockerize=true
             ;;
 
         report)
-            args+=("report" "-f" "StaticHtml,WebApp,Excel,NoticeTemplate,SPDXDocument,GitLabLicensemodel,EVALUATEDMODELJSON")
+            args+=("report" "-f" "StaticHtml,WebApp,Excel,NoticeTemplate,SPDXDocument,GitLabLicensemodel,AsciiDocTemplate,CycloneDx,EvaluatedModel")
             if [[ -f "$output/resolutions.yml" ]]; then
                 args+=("--resolutions-file" "$output/resolutions.yml")
             fi
@@ -178,9 +185,9 @@ runOrt() {
     args+=("${@}")
 
     cat <<EOF >> "$output/_calls"
-[$(date)] $0
-    -i "${input}"
-    -o "${output}"
+[$(date)] ort
+    -i "$(realpath --relative-to="$(pwd)" "$input")"
+    -o "$(realpath --relative-to="$(pwd)" "$output")"
     ${args[@]}
 EOF
 
@@ -189,10 +196,11 @@ EOF
     else
         args+=("-i" "${input}" "-o" "$output")
         (set -x;
-         $ort "${args[@]}";
-         times)
+            $ort "${args[@]}";
+            >&2 times)
     fi
 }
+
 
 ################################################################################
 ##  wrapper to run a more complete pipeline  ###################################
@@ -202,7 +210,7 @@ doAll() {
     local input="$(readlink -f "$1")"; shift
     if [[ ! -e "$input" ]]; then
         echo "the input=$input is missing"
-        exit 1
+        return 1
     fi
 
     local output="$input"
@@ -214,18 +222,18 @@ doAll() {
     local reportResult="$output/scan-report-web-app.html"
     if [[ ! -f "$reportResult" ]]; then
         local scanResult="$output/scan-result.yml"
+        local analyzeResult="$output/analyzer-result.yml"
         if [[ ! -f "$scanResult" ]]; then
-            local analyzeResult="$output/analyzer-result.yml"
             if [[ ! -f "$analyzeResult" ]]; then
-                runOrt analyze "$input" "$@"
+                runOrt analyze "$input" "$@" || [[ -f "$analyzeResult" ]]
             else
                 echo "skip analyze ..."
             fi
-            runOrt scan "$analyzeResult"
+            runOrt scan "$analyzeResult" || [[ -f "$scanResult" ]]
         else
             echo "skip scan ..."
         fi
-        runOrt report "$scanResult"
+        runOrt report "$scanResult" || runOrt report "$analyzeResult"
     else
         echo "skip report ..."
     fi
@@ -235,7 +243,7 @@ doShort() {
     local input="$(readlink -f "$1")"; shift
     if [[ ! -e "$input" ]]; then
         echo "the input=$input is missing"
-        exit 1
+        return 1
     fi
 
     local output="$input"
@@ -250,7 +258,7 @@ doShort() {
     if [[ ! -f "$reportResult" ]]; then
         local analyzeResult="$output/analyzer-result.yml"
         if [[ ! -f "$analyzeResult" ]]; then
-            runOrt analyze "$input" "$@"
+            runOrt analyze "$input" "$@" || [[ -f "$analyzeResult" ]]
         else
             echo "skip analyze ..."
         fi
@@ -260,18 +268,53 @@ doShort() {
     fi
 }
 
+doListPackages() {
+    local input="$(readlink -f "$1")"; shift
+
+    buildImageIfMissing
+
+    local inputFile
+    local inputDir
+    if [[ -f "$input" ]]; then
+        inputFile="$(basename "$input")"
+        inputDir="$(dirname "$input")"
+    else
+        exit 1
+    fi
+
+    local dockerArgs=("-i" "--rm")
+    dockerArgs+=("-v" "$inputDir:/workdir")
+    dockerArgs+=("-w" "/workdir")
+    dockerArgs+=("--net=host")
+    dockerArgs+=("--entrypoint" "/opt/ort/bin/orth")
+    local args=($(echo "${@}" | sed "s%$inputDir%/workdir%g"))
+    (set -x;
+     docker run \
+         "${dockerArgs[@]}" \
+         "$tag" \
+         list-packages "${args[@]}" --ort-file "/workdir/$inputFile";
+     >&2 times
+     )
+}
+
 ################################################################################
 ##  handle arguments and run  ##################################################
 ################################################################################
 
-
-# if [[ ! -z "$2" && -d "$(computeOutFolder "$2")" ]]; then
-#     cat <<EOF >> "$(computeOutFolder "$2")/_calls"
-# [$(date)] $0 $*
-# EOF
-# fi
-#
 prepareDotOrt
+
+if ! command -v $ort &> /dev/null; then
+    (>&2 echo "$ort not in \$PATH, dockerize by default")
+    DOCKERIZE_BY_DEFAULT=true
+    if [[ "$1" == "--dockerize" ]]; then
+        shift
+    fi
+else
+    if [[ "$1" == "--dockerize" ]]; then
+        DOCKERIZE_BY_DEFAULT=true
+        shift
+    fi
+fi
 
 if [[ $# = 0 ]]; then
     help
@@ -284,7 +327,10 @@ elif [[ "$1" == "all" ]]; then
 elif [[ "$1" == "short" ]]; then
     shift
     doShort "$@"
+elif [[ "$1" == "list-packages" ]]; then
+    shift
+    doListPackages "$@"
 else
-    runOrt "$@"
+    runOrt "$@" || help
 fi
-times
+>&2 times
