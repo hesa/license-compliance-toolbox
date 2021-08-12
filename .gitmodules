@@ -1,0 +1,9 @@
+[submodule "vinland-technology-compliance-utils"]
+	path = vinland-technology-compliance-utils
+	url = https://github.com/vinland-technology/compliance-utils
+[submodule "armijnhemel-compliance-scripts"]
+	path = armijnhemel-compliance-scripts
+	url = https://github.com/armijnhemel/compliance-scripts
+[submodule "vinland-technology-compliance-tool-collection"]
+	path = vinland-technology-compliance-tool-collection
+	url = https://github.com/vinland-technology/compliance-tool-collection
