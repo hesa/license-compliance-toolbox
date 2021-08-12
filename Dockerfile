@@ -8,10 +8,19 @@ RUN set -x \
  `# install ninka` \
  && apt-get update \
  && apt-get install -y --no-install-recommends ninka ninka-backend-excel ninka-backend-sqlite \
+    `# install exiftool` \
+    exiftool \
+    `# install cloc` \
+    cloc \
+    `# install jq` \
+    jq \
  && rm -rf /var/lib/apt/lists/* \
 
  `# install reuse` \
  && pip3 install reuse \
+
+ `# install swh.scanner` \
+ `# && pip3 install swh.scanner` \
 
  `# install license detector` \
  && cd /opt \
