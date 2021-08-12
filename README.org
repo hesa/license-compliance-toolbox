@@ -1,10 +1,14 @@
 * License Compliance Toolbox
 
-Just some wrapping and scripting around useful tools.
+Just some wrapping and scripting around useful tools. With some other stuff
 
 *State:* experimental
 
-This was previously in https://github.com/maxhbr/myconfig in https://github.com/maxhbr/myconfig/tree/master/pkgs/license-compliance-toolbox
+This was previously part of https://github.com/maxhbr/myconfig
 
 ** Build:
 build with =nix build .#=
+
+** Related projects:
+- https://github.com/vinland-technology/compliance-tool-collection
+- https://github.com/armijnhemel/compliance-scripts
