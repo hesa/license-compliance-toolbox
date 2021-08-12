@@ -20,18 +20,17 @@ getOutFolder() {
 scan() (
     workdir="$1"; shift
     outdir="$1"; shift
-    outdir="$(getOutFolder "$workdir")"
     bn="$(basename "$workdir")"
 
     set -x
     scancode \
         -n "$(getNumberOfThreads)" \
         --license --copyright --package --info \
-        /workdir \
+        "$workdir" \
         --license-text --license-text-diagnostics \
         --json "$outdir/${bn}.scancode.json" \
         --json-pp "$outdir/${bn}.scancode.pp.json" \
-        --csv "$outdir/${bn}.scancode.csv" \
+        `#--csv "$outdir/${bn}.scancode.csv"` \
         --spdx-rdf "$outdir/${bn}.scancode.rdf.xml" \
         --spdx-tv "$outdir/${bn}.scancode.spdx" \
         --html-app "$outdir/${bn}.scancode.html" \

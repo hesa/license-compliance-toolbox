@@ -92,7 +92,7 @@
                       while IFS= read -r -d "" dir; do
                           dirDir="$output/$dir"
                           (set +e
-                           mkdir -p "$fileDir"
+                           mkdir -p "$dirDir"
                            ls -alF $dir > "$dirDir/ls"
                            # TODO: cloc every dir?
                           )
