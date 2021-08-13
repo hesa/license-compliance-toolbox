@@ -2,8 +2,8 @@
 set -euo pipefail
 
 findDefinitionFiles() (
-    local input="$1"; shift
-    local output="$1"; shift
+    local input="$(readlink -f "$1")"; shift
+    local output="$(readlink -f "$1")"; shift
     mkdir -p "$output"
 
     set -o noglob

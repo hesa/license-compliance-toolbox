@@ -10,11 +10,19 @@ file "#{outputs}/src" => inputs do |t|
 end
 
 namespace "ort" do
+  file "#{outputs}/ort/.gitignore" do |t|
+    sh "mkdir -p #{outputs}/ort"
+    gitignore = <<-GITIGNORE
+scan-result-reports
+downloads
+GITIGNORE
+    File.open(t.name, 'w') { |file| file.write(gitignore) }
+  end
   file "#{outputs}/ort/analyzer-result.yml" => "#{outputs}/src" do |t|
     sh "ort --force-overwrite --info -P ort.analyzer.allowDynamicVersions=true analyze --clearly-defined-curations --output-formats JSON,YAML -i #{t.source} -o #{File.dirname(t.name)} || true"
   end
 
-  file "#{outputs}/ort/scan-result.packages" => "#{outputs}/ort/analyzer-result.yml" do |t|
+  file "#{outputs}/ort/analyzer-result.packages" => "#{outputs}/ort/analyzer-result.yml" do |t|
     sh "orth list-packages -i #{t.source} > #{t.name}"
   end
 
@@ -34,13 +42,14 @@ namespace "ort" do
     sh "ort --force-overwrite --info report -f StaticHtml,WebApp,Excel,NoticeTemplate,SPDXDocument,GitLabLicensemodel,AsciiDocTemplate,CycloneDx,EvaluatedModel -i #{t.source} -o #{t.name} || true"
   end
 
-  task :run => ["#{outputs}/ort/analyzer-result.yml",
+  task :run => ["#{outputs}/ort/.gitignore",
+                "#{outputs}/ort/analyzer-result.yml",
                 "#{outputs}/ort/scan-result.packages",
                 "#{outputs}/ort/downloads",
                 "#{outputs}/ort/analyzer-result-reports",
                 "#{outputs}/ort/scan-result.yml",
                 "#{outputs}/ort/scan-result-reports"
-              ]
+               ]
 end
 
 namespace "scancode" do
@@ -74,10 +83,10 @@ namespace "cmff" do
 end
 
 namespace "cloc" do
-  file "#{outputs}/original.cloc" =>  inputs do |t|
+  file "#{outputs}/original.cloc" => inputs do |t|
     sh "cloc #{t.source} > #{t.name}"
   end
-  file "#{outputs}/extracted.cloc" =>  "#{outputs}/src" do |t|
+  file "#{outputs}/extracted.cloc" => "#{outputs}/src" do |t|
     sh "cloc #{t.source} > #{t.name}"
   end
   multitask :run => ["#{outputs}/original.cloc", "#{outputs}/extracted.cloc"]
@@ -87,11 +96,10 @@ file "#{outputs}/definitionFiles" => "#{outputs}/src" do |t|
   sh "findDefinitionFiles.sh  #{t.source} #{t.name}"
 end
 
-task :default => ["#{outputs}/src",
-                  "cmff:run",
-                  "cloc:run",
-                  "#{outputs}/definitionFiles",
-                  "scancode:run",
-                  "ort:run",
-                  "scanoss:run"
-                 ]
+multitask :default => ["cmff:run",
+                       "cloc:run",
+                       "#{outputs}/definitionFiles",
+                       "scancode:run",
+                       "ort:run",
+                       "scanoss:run"
+                      ]
