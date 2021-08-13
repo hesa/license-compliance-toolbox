@@ -76,4 +76,4 @@ WORKDIR /
 ADD octrc/octrc.entrypoint.sh /usr/local/bin
 ENTRYPOINT /usr/local/bin/octrc.entrypoint.sh
 
-ADD octrc/Rakefile /
+ADD octrc/octrc.Rakefile /

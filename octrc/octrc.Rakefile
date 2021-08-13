@@ -1,5 +1,6 @@
-outputs="/outputs"
-inputs="/inputs"
+# -*- mode: Ruby;-*-
+outputs="."
+inputs=ENV["OCTRC_INPUTS"]
 
 
 
@@ -14,7 +15,11 @@ namespace "ort" do
   end
 
   file "#{outputs}/ort/scan-result.packages" => "#{outputs}/ort/analyzer-result.yml" do |t|
-    sh "orth list-packages --ort-file #{t.source} > #{t.name}"
+    sh "orth list-packages -i #{t.source} > #{t.name}"
+  end
+
+  file "#{outputs}/ort/downloads" => "#{outputs}/ort/analyzer-result.yml" do |t|
+    sh "ort download -i #{t.source} -o #{t.name}"
   end
 
   file "#{outputs}/ort/scan-result.yml" => "#{outputs}/ort/analyzer-result.yml" do |t|
@@ -31,6 +36,7 @@ namespace "ort" do
 
   task :run => ["#{outputs}/ort/analyzer-result.yml",
                 "#{outputs}/ort/scan-result.packages",
+                "#{outputs}/ort/downloads",
                 "#{outputs}/ort/analyzer-result-reports",
                 "#{outputs}/ort/scan-result.yml",
                 "#{outputs}/ort/scan-result-reports"
@@ -57,7 +63,7 @@ namespace "scanoss" do
     sh "mkdir -p #{outputs}/scanoss/"
     sh "scanner -fspdx -o#{t.name} #{t.source}"
   end
-  multitask :run => ["#{outputs}/scanoss.json", "#{outputs}/scanoss.spdx.json"]
+  multitask :run => ["#{outputs}/scanoss/scanoss.json", "#{outputs}/scanoss/scanoss.spdx.json"]
 end
 
 namespace "cmff" do
@@ -85,7 +91,7 @@ task :default => ["#{outputs}/src",
                   "cmff:run",
                   "cloc:run",
                   "#{outputs}/definitionFiles",
-                  # "scancode:run",
+                  "scancode:run",
                   "ort:run",
                   "scanoss:run"
                  ]

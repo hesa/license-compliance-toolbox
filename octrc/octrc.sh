@@ -64,7 +64,7 @@ buildImage() {
         git submodule update --init --recursive
         git submodule update
 
-        docker build .. -f ./Dockerfile --tag octrc
+        docker build .. -f ./octrc.Dockerfile --tag octrc
     )
 }
 
