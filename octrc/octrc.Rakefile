@@ -3,59 +3,61 @@ outputs="."
 inputs=ENV["OCTRC_INPUTS"]
 
 
-
 file "#{outputs}/src" => inputs do |t|
   sh "cp -r #{t.source} #{t.name}"
-  # puts "extractcode ..."
-  # sh "extractcode --verbose #{t.name}"
+  puts "extractcode ..."
+  sh "extractcode --verbose #{t.name} || true"
 end
 
 namespace "ort" do
-  file "#{outputs}/ort/.gitignore" do |t|
-    sh "mkdir -p #{outputs}/ort"
+  ortOutputs="#{outputs}/ort"
+  file "#{ortOutputs}/.gitignore" do |t|
+    sh "mkdir -p #{ortOutputs}"
     gitignore = <<-GITIGNORE
 scan-result-reports
 downloads
 GITIGNORE
     File.open(t.name, 'w') { |file| file.write(gitignore) }
   end
-  file "#{outputs}/ort/analyzer-result.yml" => "#{outputs}/src" do |t|
+  file "#{ortOutputs}/analyzer-result.yml" => "#{outputs}/src" do |t|
     puts "ort analyzer ..."
     sh "ort --force-overwrite --info -P ort.analyzer.allowDynamicVersions=true analyze --clearly-defined-curations --output-formats JSON,YAML -i #{t.source} -o #{File.dirname(t.name)} || true"
   end
 
-  file "#{outputs}/ort/analyzer-result.packages" => "#{outputs}/ort/analyzer-result.yml" do |t|
+  file "#{ortOutputs}/analyzer-result.packages" => "#{ortOutputs}/analyzer-result.yml" do |t|
     puts "orts list-packages ..."
     sh "orth list-packages -i #{t.source} > #{t.name}"
   end
 
-  file "#{outputs}/ort/downloads" => "#{outputs}/ort/analyzer-result.yml" do |t|
+  file "#{ortOutputs}/downloads" => "#{ortOutputs}/analyzer-result.yml" do |t|
     puts "ort download ..."
     sh "ort download -i #{t.source} -o #{t.name}"
   end
 
-  file "#{outputs}/ort/scan-result.yml" => "#{outputs}/ort/analyzer-result.yml" do |t|
+  file "#{ortOutputs}/scan-result.yml" => "#{ortOutputs}/analyzer-result.yml" do |t|
     puts "ort scan ..."
     sh "ort --force-overwrite --info scan -i #{t.source} -o #{File.dirname(t.name)} || true"
   end
 
-  file "#{outputs}/ort/analyzer-result-reports" => "#{outputs}/ort/analyzer-result.yml" do |t|
+  file "#{ortOutputs}/analyzer-result-reports" => "#{ortOutputs}/analyzer-result.yml" do |t|
     puts "ort report for analzyer ..."
     sh "ort --force-overwrite --info report -f StaticHtml,WebApp,Excel,NoticeTemplate,SPDXDocument,GitLabLicensemodel,AsciiDocTemplate,CycloneDx,EvaluatedModel -i #{t.source} -o #{t.name} || true"
   end
 
-  file "#{outputs}/ort/scan-result-reports" => "#{outputs}/ort/scan-result.yml" do |t|
+  file "#{ortOutputs}/scan-result-reports" => "#{ortOutputs}/scan-result.yml" do |t|
     puts "ort report for scan ..."
     sh "ort --force-overwrite --info report -f StaticHtml,WebApp,Excel,NoticeTemplate,SPDXDocument,GitLabLicensemodel,AsciiDocTemplate,CycloneDx,EvaluatedModel -i #{t.source} -o #{t.name} || true"
   end
 
-  task :run => ["#{outputs}/ort/.gitignore",
-                "#{outputs}/ort/analyzer-result.yml",
-                "#{outputs}/ort/analyzer-result.packages",
-                "#{outputs}/ort/downloads",
-                "#{outputs}/ort/analyzer-result-reports",
-                "#{outputs}/ort/scan-result.yml",
-                "#{outputs}/ort/scan-result-reports"
+  task :analyze => ["#{ortOutputs}/.gitignore",
+                    "#{ortOutputs}/analyzer-result.yml",
+                    "#{ortOutputs}/analyzer-result.packages",
+                    "#{ortOutputs}/analyzer-result-reports",
+                   ]
+  task :all => [:analyze,
+                "#{ortOutputs}/downloads",
+                "#{ortOutputs}/scan-result.yml",
+                "#{ortOutputs}/scan-result-reports"
                ]
 end
 
@@ -119,7 +121,8 @@ end
 task :default => ["metadata:run",
                   "cloc:run",
                   "scancode:run",
-                  "ort:run",
+                  "ort:analyze", # first analyze, later do scan
                   "scanoss:run",
-                  "owasp:run"
+                  "owasp:run",
+                  "ort:all"
                  ]
