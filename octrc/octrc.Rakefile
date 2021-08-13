@@ -88,7 +88,8 @@ end
 namespace "owasp" do
   file "#{outputs}/owasp/dependency-check-report.json" => "#{outputs}/src" do |t|
     puts "dependency-check.sh ..."
-    sh "dependency-check.sh --noupdate --format ALL --out #{File.dirname(t.name)} --project inputs --scan #{t.source}"
+    sh "mkdir -p #{File.dirname(t.name)}/data"
+    sh "dependency-check.sh --format ALL --data /dependency-check-data --log #{File.dirname(t.name)}/log --out #{File.dirname(t.name)} --scan #{t.source}"
   end
   multitask :run => ["#{outputs}/owasp/dependency-check-report.json"]
 end

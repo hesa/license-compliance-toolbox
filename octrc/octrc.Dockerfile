@@ -67,8 +67,9 @@ RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/
     && unzip /opt/dependency-check.zip \
     && rm /opt/dependency-check.zip \
     && ln -s /opt/dependency-check/bin/dependency-check.sh /usr/local/bin/dependency-check.sh \
-    && dependency-check.sh --updateonly \
-    && chmod 666 /opt/dependency-check/data/cache/*
+    && dependency-check.sh --data /dependency-check-data --updateonly \
+    && find /dependency-check-data -type f -exec chmod 666 {} \; \
+    && find /dependency-check-data -type d -exec chmod 777 {} \;
 
 ADD armijnhemel-compliance-scripts /opt/armijnhemel-compliance-scripts
 ADD vinland-technology-compliance-utils /opt/vinland-technology-compliance-utils
