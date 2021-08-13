@@ -51,7 +51,7 @@ GITIGNORE
 
   task :run => ["#{outputs}/ort/.gitignore",
                 "#{outputs}/ort/analyzer-result.yml",
-                "#{outputs}/ort/scan-result.packages",
+                "#{outputs}/ort/analyzer-result.packages",
                 "#{outputs}/ort/downloads",
                 "#{outputs}/ort/analyzer-result-reports",
                 "#{outputs}/ort/scan-result.yml",
@@ -88,38 +88,38 @@ end
 namespace "owasp" do
   file "#{outputs}/owasp/dependency-check-report.json" => "#{outputs}/src" do |t|
     puts "dependency-check.sh ..."
-    sh "mkdir -p #{File.dirname(t.name)}/data"
     sh "dependency-check.sh --format ALL --data /dependency-check-data --log #{File.dirname(t.name)}/log --out #{File.dirname(t.name)} --scan #{t.source}"
   end
   multitask :run => ["#{outputs}/owasp/dependency-check-report.json"]
 end
 
-namespace "cmff" do
+namespace "metadata" do
   file "#{outputs}/cmff" => "#{outputs}/src" do |t|
     sh "cmff.sh #{t.source} #{t.name}"
   end
-  multitask :run => ["#{outputs}/cmff"]
+
+  file "#{outputs}/definitionFiles" => "#{outputs}/src" do |t|
+    sh "findDefinitionFiles.sh  #{t.source} #{t.name}"
+  end
+
+  multitask :run => ["#{outputs}/cmff", "#{outputs}/definitionFiles"]
 end
 
 namespace "cloc" do
-  file "#{outputs}/original.cloc" => inputs do |t|
-    sh "cloc #{t.source} > #{t.name}"
+  file "#{outputs}/original.cloc.yaml" => inputs do |t|
+    sh "cloc -yaml --report-file=#{t.name} #{t.source}"
   end
-  file "#{outputs}/extracted.cloc" => "#{outputs}/src" do |t|
-    sh "cloc #{t.source} > #{t.name}"
+  file "#{outputs}/extracted.cloc.yaml" => "#{outputs}/src" do |t|
+    sh "cloc -yaml --report-file=#{t.name} #{t.source}"
   end
-  multitask :run => ["#{outputs}/original.cloc", "#{outputs}/extracted.cloc"]
+
+  multitask :run => ["#{outputs}/original.cloc.yaml", "#{outputs}/extracted.cloc.yaml"]
 end
 
-file "#{outputs}/definitionFiles" => "#{outputs}/src" do |t|
-  sh "findDefinitionFiles.sh  #{t.source} #{t.name}"
-end
-
-multitask :default => ["cmff:run",
-                       "cloc:run",
-                       "#{outputs}/definitionFiles",
-                       "scancode:run",
-                       "ort:run",
-                       "scanoss:run",
-                       "owasp:run"
-                      ]
+task :default => ["metadata:run",
+                  "cloc:run",
+                  "scancode:run",
+                  "ort:run",
+                  "scanoss:run",
+                  "owasp:run"
+                 ]

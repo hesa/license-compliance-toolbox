@@ -81,8 +81,6 @@ run() {
     local dockerArgs=("-i" "--rm")
     dockerArgs+=("-v" "/etc/group:/etc/group:ro" "-v" "/etc/passwd:/etc/passwd:ro" "-u" "$(id -u $USER):$(id -g $USER)")
     dockerArgs+=("-v" "$HOME/.ort/dockerHome:$HOME")
-    mkdir -p ".dependency-check/data/cache"
-    dockerArgs+=("-v" "$HOME/.dependency-check/data/:/opt/dependency-check/data/")
     dockerArgs+=("-v" "$input:/inputs:ro")
     dockerArgs+=("-v" "$output:/outputs")
     dockerArgs+=("--net=host")

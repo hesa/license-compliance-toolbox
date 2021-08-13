@@ -22,6 +22,7 @@ collectMetadataForFiles() {
              wc "$file" > "$fileDir/wc"
              du -h "$file" > "$fileDir/du"
              exiftool "$file" > "$fileDir/exiftool"
+             simhash "$file" > "$fileDir/simhash" || rm "$fileDir/simhash"
              true
             )
         done

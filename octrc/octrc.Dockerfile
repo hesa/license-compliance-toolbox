@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/
         # install ninka
         ninka ninka-backend-excel ninka-backend-sqlite \
         # install tools
-        exiftool cloc jq file libncurses5-dev libncursesw5-dev \
+        exiftool cloc simhash jq file libncurses5-dev libncursesw5-dev \
         # for scanoss
         libcurl4-openssl-dev \
     && apt-get clean \
