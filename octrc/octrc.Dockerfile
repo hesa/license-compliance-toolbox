@@ -1,3 +1,4 @@
+# -*- mode: Dockerfile;-*-
 FROM ort:latest
 
 RUN set -x \
@@ -53,10 +54,21 @@ RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/
     && rm "/tmp/scanoss-scanner-${SCANOSS_VERSION}-amd64.deb" \
 
     # install license detector
+    && mkdir -p /opt/license-detector \
+    && cd /opt/license-detector \
+    && curl -ksSL "https://github.com/go-enry/go-license-detector/releases/download/${LICENSE_DETECTOR_VERSION}/license-detector-${LICENSE_DETECTOR_VERSION}-linux-amd64.tar.gz" | \
+        tar -zxC //opt/license-detector \
+    && chmod a+x license-detector \
+    && ln -s /opt/license-detector/license-detector /usr/local/bin/license-detector \
+
+    # install owasp dependency-check
     && cd /opt \
-    && tar zxvf license-detector-${LICENSE_DETECTOR_VERSION}-linux-amd64.tar.gz \
-    && rm license-detector-${LICENSE_DETECTOR_VERSION}-linux-amd64.tar.gz \
-    && chmod a+x license-detector
+    && curl -ksSL -o /opt/dependency-check.zip https://github.com/jeremylong/DependencyCheck/releases/download/v6.2.2/dependency-check-6.2.2-release.zip \
+    && unzip /opt/dependency-check.zip \
+    && rm /opt/dependency-check.zip \
+    && ln -s /opt/dependency-check/bin/dependency-check.sh /usr/local/bin/dependency-check.sh \
+    && dependency-check.sh --updateonly \
+    && chmod 666 /opt/dependency-check/data/cache/*
 
 ADD armijnhemel-compliance-scripts /opt/armijnhemel-compliance-scripts
 ADD vinland-technology-compliance-utils /opt/vinland-technology-compliance-utils

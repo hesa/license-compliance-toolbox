@@ -6,6 +6,7 @@ inputs=ENV["OCTRC_INPUTS"]
 
 file "#{outputs}/src" => inputs do |t|
   sh "cp -r #{t.source} #{t.name}"
+  # puts "extractcode ..."
   # sh "extractcode --verbose #{t.name}"
 end
 
@@ -19,26 +20,32 @@ GITIGNORE
     File.open(t.name, 'w') { |file| file.write(gitignore) }
   end
   file "#{outputs}/ort/analyzer-result.yml" => "#{outputs}/src" do |t|
+    puts "ort analyzer ..."
     sh "ort --force-overwrite --info -P ort.analyzer.allowDynamicVersions=true analyze --clearly-defined-curations --output-formats JSON,YAML -i #{t.source} -o #{File.dirname(t.name)} || true"
   end
 
   file "#{outputs}/ort/analyzer-result.packages" => "#{outputs}/ort/analyzer-result.yml" do |t|
+    puts "orts list-packages ..."
     sh "orth list-packages -i #{t.source} > #{t.name}"
   end
 
   file "#{outputs}/ort/downloads" => "#{outputs}/ort/analyzer-result.yml" do |t|
+    puts "ort download ..."
     sh "ort download -i #{t.source} -o #{t.name}"
   end
 
   file "#{outputs}/ort/scan-result.yml" => "#{outputs}/ort/analyzer-result.yml" do |t|
+    puts "ort scan ..."
     sh "ort --force-overwrite --info scan -i #{t.source} -o #{File.dirname(t.name)} || true"
   end
 
   file "#{outputs}/ort/analyzer-result-reports" => "#{outputs}/ort/analyzer-result.yml" do |t|
+    puts "ort report for analzyer ..."
     sh "ort --force-overwrite --info report -f StaticHtml,WebApp,Excel,NoticeTemplate,SPDXDocument,GitLabLicensemodel,AsciiDocTemplate,CycloneDx,EvaluatedModel -i #{t.source} -o #{t.name} || true"
   end
 
   file "#{outputs}/ort/scan-result-reports" => "#{outputs}/ort/scan-result.yml" do |t|
+    puts "ort report for scan ..."
     sh "ort --force-overwrite --info report -f StaticHtml,WebApp,Excel,NoticeTemplate,SPDXDocument,GitLabLicensemodel,AsciiDocTemplate,CycloneDx,EvaluatedModel -i #{t.source} -o #{t.name} || true"
   end
 
@@ -54,6 +61,7 @@ end
 
 namespace "scancode" do
   file "#{outputs}/scancode/src.scancode.json" => "#{outputs}/src" do |t|
+    puts "scancode ..."
     sh "scancode.scan.sh #{t.source} #{File.dirname(t.name)}"
   end
   # file "#{outputs}/scancode/manifest.md" => "#{outputs}/scancode/src.scancode.json" do |t|
@@ -65,14 +73,24 @@ end
 
 namespace "scanoss" do
   file "#{outputs}/scanoss/scanoss.json" => "#{outputs}/src" do |t|
+    puts "scanoss json ..."
     sh "mkdir -p #{outputs}/scanoss/"
     sh "scanner -o#{t.name} #{t.source}"
   end
   file "#{outputs}/scanoss/scanoss.spdx.json" => "#{outputs}/src" do |t|
+    puts "scanoss spdx ..."
     sh "mkdir -p #{outputs}/scanoss/"
     sh "scanner -fspdx -o#{t.name} #{t.source}"
   end
   multitask :run => ["#{outputs}/scanoss/scanoss.json", "#{outputs}/scanoss/scanoss.spdx.json"]
+end
+
+namespace "owasp" do
+  file "#{outputs}/owasp/dependency-check-report.json" => "#{outputs}/src" do |t|
+    puts "dependency-check.sh ..."
+    sh "dependency-check.sh --noupdate --format ALL --out #{File.dirname(t.name)} --project inputs --scan #{t.source}"
+  end
+  multitask :run => ["#{outputs}/owasp/dependency-check-report.json"]
 end
 
 namespace "cmff" do
@@ -101,5 +119,6 @@ multitask :default => ["cmff:run",
                        "#{outputs}/definitionFiles",
                        "scancode:run",
                        "ort:run",
-                       "scanoss:run"
+                       "scanoss:run",
+                       "owasp:run"
                       ]
