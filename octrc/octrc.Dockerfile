@@ -7,6 +7,8 @@ RUN set -x \
 ARG SCANCODE_VERSION=21.8.4
 ARG LICENSE_DETECTOR_VERSION=v4.2.0
 ARG SCANOSS_VERSION=1.3.4
+ARG DEPENDENCY_CHECK_VERSION=6.2.2
+ARG PMD_VERSION=6.37.0
 
 ENV JAVA_OPTS "-Xms2048M -Xmx16g -XX:MaxPermSize=4096m -XX:MaxMetaspaceSize=4g"
 RUN set -x \
@@ -63,19 +65,25 @@ RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/
 
     # install owasp dependency-check
     && cd /opt \
-    && curl -ksSL -o /opt/dependency-check.zip https://github.com/jeremylong/DependencyCheck/releases/download/v6.2.2/dependency-check-6.2.2-release.zip \
+    && curl -ksSL -o /opt/dependency-check.zip https://github.com/jeremylong/DependencyCheck/releases/download/v${DEPENDENCY_CHECK_VERSION}/dependency-check-${DEPENDENCY_CHECK_VERSION}-release.zip \
     && unzip /opt/dependency-check.zip \
     && rm /opt/dependency-check.zip \
     && ln -s /opt/dependency-check/bin/dependency-check.sh /usr/local/bin/dependency-check.sh \
     && dependency-check.sh --data /dependency-check-data --updateonly \
     && find /dependency-check-data -type f -exec chmod 666 {} \; \
-    && find /dependency-check-data -type d -exec chmod 777 {} \;
+    && find /dependency-check-data -type d -exec chmod 777 {} \; \
+
+    # install pmd
+    && curl -ksSL -o /opt/pmd-bin-${PMD_VERSION}.zip https://github.com/pmd/pmd/releases/download/pmd_releases%2F${PMD_VERSION}/pmd-bin-${PMD_VERSION}.zip \
+    && unzip /opt/pmd-bin-${PMD_VERSION}.zip \
+    && ln -s /opt/pmd-bin-${PMD_VERSION}/bin/run.sh /usr/local/bin/pmd
 
 ADD armijnhemel-compliance-scripts /opt/armijnhemel-compliance-scripts
 ADD vinland-technology-compliance-utils /opt/vinland-technology-compliance-utils
 ADD vinland-technology-scancode-manifestor /opt/vinland-technology-scancode-manifestor
 ADD nexB-scancode-toolkit/scancode.scan.sh /usr/local/bin
 ADD cmff.sh /usr/local/bin
+ADD exiftool-dir.sh /usr/local/bin
 ADD findDefinitionFiles.sh /usr/local/bin
 
 ################################################################################
