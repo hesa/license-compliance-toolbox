@@ -82,6 +82,7 @@ ADD armijnhemel-compliance-scripts /opt/armijnhemel-compliance-scripts
 ADD vinland-technology-compliance-utils /opt/vinland-technology-compliance-utils
 ADD vinland-technology-scancode-manifestor /opt/vinland-technology-scancode-manifestor
 ADD nexB-scancode-toolkit/scancode.scan.sh /usr/local/bin
+ADD nexB-scancode-toolkit/scancode.genPackagesCsv.sh /usr/local/bin
 ADD cmff.sh /usr/local/bin
 ADD exiftool-dir.sh /usr/local/bin
 ADD findDefinitionFiles.sh /usr/local/bin

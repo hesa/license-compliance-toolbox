@@ -20,7 +20,6 @@ getOutFolder() {
 scan() (
     workdir="$1"; shift
     outdir="$1"; shift
-    bn="$(basename "$workdir")"
 
     set -x
     scancode \
@@ -28,12 +27,12 @@ scan() (
         --license --copyright --package --info \
         "$workdir" \
         --license-text --license-text-diagnostics \
-        --json "$outdir/${bn}.scancode.json" \
-        --json-pp "$outdir/${bn}.scancode.pp.json" \
-        `#--csv "$outdir/${bn}.scancode.csv"` \
-        --spdx-rdf "$outdir/${bn}.scancode.rdf.xml" \
-        --spdx-tv "$outdir/${bn}.scancode.spdx" \
-        --html-app "$outdir/${bn}.scancode.html" \
+        --json "$outdir/scancode.json" \
+        --json-pp "$outdir/scancode.pp.json" \
+        `#--csv "$outdir/scancode.csv"` \
+        --spdx-rdf "$outdir/scancode.rdf.xml" \
+        --spdx-tv "$outdir/scancode.spdx" \
+        --html-app "$outdir/scancode.html" \
         --strip-root
 )
 

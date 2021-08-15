@@ -1,6 +1,6 @@
 # -*- mode: Ruby;-*-
-output="."
 input=ENV["OCTRC_INPUT"]
+output="."
 
 
 file "#{output}/src" => input do |t|
@@ -11,6 +11,7 @@ end
 
 namespace "ort" do
   ortOutput="#{output}/ort"
+
   file "#{ortOutput}/.gitignore" do |t|
     sh "mkdir -p #{ortOutput}"
     gitignore = <<-GITIGNORE
@@ -62,15 +63,21 @@ GITIGNORE
 end
 
 namespace "scancode" do
-  file "#{output}/scancode/src.scancode.json" => "#{output}/src" do |t|
+  file "#{output}/scancode/scancode.json" => "#{output}/src" do |t|
     puts "scancode ..."
     sh "scancode.scan.sh #{t.source} #{File.dirname(t.name)}"
   end
+  file "#{output}/scancode/scancode.packages.csv" => "#{output}/scancode/scancode.json" do |t|
+    sh "scancode.genPackagesCsv.sh #{t.source} > #{t.name}"
+  end
+
   # file "#{output}/scancode/manifest.md" => "#{output}/scancode/src.scancode.json" do |t|
   #   sh "touch /tmp/config.json"
   #   sh "/opt/vinland-technology-scancode-manifestor/scancode-manifestor -ae -i #{t.source} -c /tmp/config.json -of markdown -- create > #{t.name}"
   # end
-  task :run => ["#{output}/scancode/src.scancode.json"]
+  task :run => ["#{output}/scancode/scancode.json",
+                "#{output}/scancode/scancode.packages.csv"
+               ]
 end
 
 namespace "scanoss" do
@@ -84,7 +91,9 @@ namespace "scanoss" do
     sh "mkdir -p #{output}/scanoss/"
     sh "scanner -fspdx -o#{t.name} #{t.source}"
   end
-  multitask :run => ["#{output}/scanoss/scanoss.json", "#{output}/scanoss/scanoss.spdx.json"]
+  multitask :run => ["#{output}/scanoss/scanoss.json",
+                     "#{output}/scanoss/scanoss.spdx.json"
+                    ]
 end
 
 namespace "owasp" do
@@ -92,7 +101,8 @@ namespace "owasp" do
     puts "dependency-check.sh ..."
     sh "dependency-check.sh --format ALL --data /dependency-check-data --log #{File.dirname(t.name)}/log --out #{File.dirname(t.name)} --scan #{t.source}"
   end
-  multitask :run => ["#{output}/owasp/dependency-check-report.json"]
+  multitask :run => ["#{output}/owasp/dependency-check-report.json"
+                    ]
 end
 
 namespace "metadata" do
@@ -108,7 +118,10 @@ namespace "metadata" do
     sh "findDefinitionFiles.sh  #{t.source} #{t.name}"
   end
 
-  multitask :run => ["#{output}/cmff", "#{output}/exiftool.json", "#{output}/definitionFiles"]
+  multitask :run => ["#{output}/cmff",
+                     "#{output}/exiftool.json",
+                     "#{output}/definitionFiles"
+                    ]
 end
 
 namespace "cloc" do
@@ -119,7 +132,9 @@ namespace "cloc" do
     sh "cloc -yaml --report-file=#{t.name} #{t.source}"
   end
 
-  multitask :run => ["#{output}/original.cloc.yaml", "#{output}/extracted.cloc.yaml"]
+  multitask :run => ["#{output}/original.cloc.yaml",
+                     "#{output}/extracted.cloc.yaml"
+                    ]
 end
 
 task :default => ["metadata:run",
