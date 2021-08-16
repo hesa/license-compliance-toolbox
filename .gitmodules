@@ -10,3 +10,10 @@
 [submodule "vinland-technology-scancode-manifestor"]
 	path = vinland-technology-scancode-manifestor
 	url = https://github.com/vinland-technology/scancode-manifestor.git
+[submodule "maxhbr-LDBcollector-generated"]
+	path = maxhbr-LDBcollector-generated
+	url = https://github.com/maxhbr/LDBcollector
+	branch = generated
+[submodule "maxhbr-yacp"]
+	path = maxhbr-yacp
+	url = https://github.com/maxhbr/yacp

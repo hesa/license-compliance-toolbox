@@ -52,19 +52,21 @@ buildImage() {
 
         docker build \
             --network=host \
-            -t ort:latest $ORT
+            --tag ort:latest $ORT
     else
         >&2 echo "docker base image already build, at $(docker inspect -f '{{ .Created }}' ort:latest)"
     fi
 
+    (cd "$( dirname "${BASH_SOURCE[0]}" )"
 
-    (
-        cd "$( dirname "${BASH_SOURCE[0]}" )"
+     git submodule update --init --recursive
+     git submodule update --remote
 
-        git submodule update --init --recursive
-        git submodule update
+     set -x
 
-        docker build .. -f ./octrc.Dockerfile --tag octrc
+     docker build \
+         -f ./octrc.Dockerfile \
+         --tag octrc ..
     )
 }
 
@@ -85,10 +87,10 @@ run() {
     dockerArgs+=("-v" "$output:/outputs")
     dockerArgs+=("--net=host")
 
-    (set -x;
+    (set -x
      docker run \
          "${dockerArgs[@]}" \
-         "$tag";
+         "$tag"
      >&2 times
      )
 }
@@ -98,7 +100,21 @@ if [[ "$1" == "--build" ]]; then
     buildImage
 fi
 
+if [[ "$1" == "--help" ]]; then
+    docker run -it --rm octrc --help
+    exit 1
+fi
+
+if [[ $# -eq 0 ]]; then
+    echo "no further arguments -> exit"
+    exit 0
+fi
+
 prepareDotOrt
 
-input="$1"; shift
-run "$input" $@
+if [[ "$1" == "--run-bash" ]]; then
+    docker run -it --rm --entrypoint=/bin/bash octrc
+else
+    input="$1"; shift
+    run "$input" $@
+fi

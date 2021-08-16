@@ -1,16 +1,19 @@
 # -*- mode: Ruby;-*-
-input=ENV["OCTRC_INPUT"]
-output="."
+input=File.expand_path(ENV["OCTRC_INPUT"])
+output=File.expand_path(".")
 
 
 file "#{output}/src" => input do |t|
   sh "cp -r #{t.source} #{t.name}"
   puts "extractcode ..."
-  sh "extractcode --verbose #{t.name} || true"
+  sh "extractcode --verbose #{t.name}"\
+       " || true"
 end
 
 namespace "ort" do
   ortOutput="#{output}/ort"
+  ort="ort --force-overwrite --info"
+  ortReportFormats="StaticHtml,WebApp,Excel,NoticeTemplate,SPDXDocument,GitLabLicensemodel,AsciiDocTemplate,CycloneDx,EvaluatedModel"
 
   file "#{ortOutput}/.gitignore" do |t|
     sh "mkdir -p #{ortOutput}"
@@ -22,32 +25,53 @@ GITIGNORE
   end
   file "#{ortOutput}/analyzer-result.yml" => "#{output}/src" do |t|
     puts "ort analyzer ..."
-    sh "ort --force-overwrite --info -P ort.analyzer.allowDynamicVersions=true analyze --clearly-defined-curations --output-formats JSON,YAML -i #{t.source} -o #{File.dirname(t.name)} || true"
+    sh "#{ort} -P ort.analyzer.allowDynamicVersions=true analyze"\
+       " --clearly-defined-curations"\
+       " --output-formats JSON,YAML"\
+       " -i #{t.source}"\
+       " -o #{File.dirname(t.name)}"\
+       " || [ -f #{t.name} ]"
   end
 
   file "#{ortOutput}/analyzer-result.packages" => "#{ortOutput}/analyzer-result.yml" do |t|
     puts "orts list-packages ..."
-    sh "orth list-packages -i #{t.source} > #{t.name}"
+    sh "orth list-packages"\
+       " -i #{t.source}"\
+       " > #{t.name}"
   end
 
   file "#{ortOutput}/downloads" => "#{ortOutput}/analyzer-result.yml" do |t|
     puts "ort download ..."
-    sh "ort download -i #{t.source} -o #{t.name}"
+    sh "ort download"\
+       " -i #{t.source}"\
+       " -o #{t.name}"
   end
 
   file "#{ortOutput}/scan-result.yml" => "#{ortOutput}/analyzer-result.yml" do |t|
     puts "ort scan ..."
-    sh "ort --force-overwrite --info scan -i #{t.source} -o #{File.dirname(t.name)} || true"
+    sh "#{ort} scan"\
+       " --output-formats JSON,YAML"\
+       " -i #{t.source}"\
+       " -o #{File.dirname(t.name)}"\
+       " || [ -f #{t.name} ]"
   end
 
   file "#{ortOutput}/analyzer-result-reports" => "#{ortOutput}/analyzer-result.yml" do |t|
     puts "ort report for analzyer ..."
-    sh "ort --force-overwrite --info report -f StaticHtml,WebApp,Excel,NoticeTemplate,SPDXDocument,GitLabLicensemodel,AsciiDocTemplate,CycloneDx,EvaluatedModel -i #{t.source} -o #{t.name} || true"
+    sh "#{ort} report"\
+       " -f #{ortReportFormats}"\
+       " -i #{t.source}"\
+       " -o #{t.name}"\
+       " || [ -d #{t.name}/scan-report-web-app.html ]"
   end
 
   file "#{ortOutput}/scan-result-reports" => "#{ortOutput}/scan-result.yml" do |t|
     puts "ort report for scan ..."
-    sh "ort --force-overwrite --info report -f StaticHtml,WebApp,Excel,NoticeTemplate,SPDXDocument,GitLabLicensemodel,AsciiDocTemplate,CycloneDx,EvaluatedModel -i #{t.source} -o #{t.name} || true"
+    sh "#{ort} report"\
+       " -f #{ortReportFormats}"\
+       " -i #{t.source}"\
+       " -o #{t.name}"\
+       " || [ -d #{t.name}/scan-report-web-app.html ]"
   end
 
   task :analyze => ["#{ortOutput}/.gitignore",
@@ -84,12 +108,12 @@ namespace "scanoss" do
   file "#{output}/scanoss/scanoss.json" => "#{output}/src" do |t|
     puts "scanoss json ..."
     sh "mkdir -p #{output}/scanoss/"
-    sh "scanner -o#{t.name} #{t.source}"
+    sh "cd #{t.source} ; scanner -o#{t.name} ."
   end
   file "#{output}/scanoss/scanoss.spdx.json" => "#{output}/src" do |t|
     puts "scanoss spdx ..."
     sh "mkdir -p #{output}/scanoss/"
-    sh "scanner -fspdx -o#{t.name} #{t.source}"
+    sh "cd #{t.source} ; scanner -fspdx -o#{t.name} ."
   end
   multitask :run => ["#{output}/scanoss/scanoss.json",
                      "#{output}/scanoss/scanoss.spdx.json"
@@ -99,7 +123,12 @@ end
 namespace "owasp" do
   file "#{output}/owasp/dependency-check-report.json" => "#{output}/src" do |t|
     puts "dependency-check.sh ..."
-    sh "dependency-check.sh --format ALL --data /dependency-check-data --log #{File.dirname(t.name)}/log --out #{File.dirname(t.name)} --scan #{t.source}"
+    sh "dependency-check.sh"\
+       " --format ALL"\
+       " --data /dependency-check-data"\
+       " --log #{File.dirname(t.name)}/log"\
+       " --out #{File.dirname(t.name)}"\
+       " --scan #{t.source}"
   end
   multitask :run => ["#{output}/owasp/dependency-check-report.json"
                     ]
@@ -137,11 +166,35 @@ namespace "cloc" do
                     ]
 end
 
-task :default => ["metadata:run",
+namespace "yacp" do
+  file "#{output}/yacp/_state.json" => ["#{output}/scancode/scancode.json",
+                            # "#{output}/scanoss/scanoss.json",
+                            # "#{output}/scanoss/scanoss.spdx.json", # not valid SPDX
+                            "#{output}/ort/scan-result.json",
+                            "#{output}/ort/scan-result-reports/document.spdx.yml"
+                           ] do |t|
+    sh "yacp"\
+       " --sc #{output}/scancode/scancode.json"\
+       " --ort #{output}/ort/scan-result.json"\
+       " --spdx #{output}/ort/scan-result-reports/document.spdx.yml"\
+       " #{File.dirname(t.name)}"
+       # " --scanoss #{output}/scanoss/scanoss.json"\
+  end
+
+  multitask :run => ["#{output}/yacp"]
+end
+
+desc "collect all the data"
+task :collect => ["metadata:run",
                   "cloc:run",
                   "scancode:run",
                   "ort:analyze", # first analyze, later do scan
-                  "scanoss:run",
+                  "scanoss:run"
+                 ]
+
+desc "default task, do everything"
+task :default => [:collect,
                   "owasp:run",
-                  "ort:all"
+                  "ort:all",
+                  "yacp:run"
                  ]

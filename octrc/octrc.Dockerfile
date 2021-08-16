@@ -1,4 +1,12 @@
 # -*- mode: Dockerfile;-*-
+FROM fpco/stack-build:latest as yacp
+
+WORKDIR /workdir
+ADD maxhbr-yacp .
+RUN set -x \
+    && mkdir -p /workdir/out \
+    && stack install --local-bin-path /workdir/out
+
 FROM ort:latest
 
 RUN set -x \
@@ -24,7 +32,6 @@ RUN set -x \
     && ln -snf /opt/scancode-toolkit-$SCANCODE_VERSION/scancode /usr/local/bin/scancode \
     && ln -snf /opt/scancode-toolkit-$SCANCODE_VERSION/extractcode /usr/local/bin/extractcode
 
-ADD "https://github.com/go-enry/go-license-detector/releases/download/${LICENSE_DETECTOR_VERSION}/license-detector-${LICENSE_DETECTOR_VERSION}-linux-amd64.tar.gz" /opt/license-detector-${LICENSE_DETECTOR_VERSION}-linux-amd64.tar.gz
 RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/apt set -x \
 
     && ln -s /opt/ort/bin/ort /usr/local/bin/ort \
@@ -38,6 +45,8 @@ RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/
         exiftool cloc simhash jq file libncurses5-dev libncursesw5-dev \
         # for scanoss
         libcurl4-openssl-dev \
+        # for yacp
+        plantuml graphviz \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
 
@@ -78,6 +87,10 @@ RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/
     && unzip /opt/pmd-bin-${PMD_VERSION}.zip \
     && ln -s /opt/pmd-bin-${PMD_VERSION}/bin/run.sh /usr/local/bin/pmd
 
+COPY --from=yacp /workdir/out /opt/maxhbr-yacp
+RUN set -x \
+    && ln -s /opt/maxhbr-yacp/yacp-exe /usr/local/bin/yacp
+
 ADD armijnhemel-compliance-scripts /opt/armijnhemel-compliance-scripts
 ADD vinland-technology-compliance-utils /opt/vinland-technology-compliance-utils
 ADD vinland-technology-scancode-manifestor /opt/vinland-technology-scancode-manifestor
@@ -98,4 +111,7 @@ WORKDIR /
 ADD octrc/octrc.entrypoint.sh /usr/local/bin
 ENTRYPOINT /usr/local/bin/octrc.entrypoint.sh
 
+ENV OCTRC_INPUT=/input
 ADD octrc/octrc.Rakefile /
+RUN set -x \
+    && rake --rakefile /octrc.Rakefile --directory /outputs -T

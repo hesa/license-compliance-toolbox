@@ -11,4 +11,10 @@ runAll() {
     OCTRC_INPUT=/inputs rake --rakefile /octrc.Rakefile --directory /outputs $@
 }
 
+if [[ "$1" == "--help" ]]; then
+    shift
+    OCTRC_INPUT=/inputs rake --rakefile /octrc.Rakefile --directory /outputs -T
+    exit 0
+fi
+
 runAll $@
