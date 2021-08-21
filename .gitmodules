@@ -17,3 +17,6 @@
 [submodule "maxhbr-yacp"]
 	path = maxhbr-yacp
 	url = https://github.com/maxhbr/yacp
+[submodule "ostc-eu.org-aliens4friends"]
+	path = ostc-eu.org-aliens4friends
+	url = https://git.ostc-eu.org/oss-compliance/toolchain/aliens4friends

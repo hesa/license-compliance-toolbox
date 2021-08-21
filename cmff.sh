@@ -31,7 +31,7 @@ collectMetadataForFiles() {
             dirDir="$output/$dir"
             (set +e
              mkdir -p "$dirDir"
-             ls -alF $dir > "$dirDir/ls"
+             ls -alF "$dir" > "$dirDir/ls"
              # TODO: cloc every dir?
             )
         done

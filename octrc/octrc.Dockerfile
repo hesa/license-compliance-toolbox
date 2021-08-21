@@ -7,7 +7,7 @@ RUN set -x \
     && mkdir -p /workdir/out \
     && stack install --local-bin-path /workdir/out
 
-FROM ort:latest
+FROM ort:latest as octrc-base
 
 RUN set -x \
     && rm -rf /usr/local/scancode-toolkit-$SCANCODE_VERSION \
@@ -17,6 +17,7 @@ ARG LICENSE_DETECTOR_VERSION=v4.2.0
 ARG SCANOSS_VERSION=1.3.4
 ARG DEPENDENCY_CHECK_VERSION=6.2.2
 ARG PMD_VERSION=6.37.0
+ARG SPDX_TOOL_VERSION=2.2.5
 
 ENV JAVA_OPTS "-Xms2048M -Xmx16g -XX:MaxPermSize=4096m -XX:MaxMetaspaceSize=4g"
 RUN set -x \
@@ -50,11 +51,11 @@ RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
 
-    # install rake
-    && gem install rake \
-
     # install reuse
     && pip3 install reuse \
+
+    # install tern
+    && pip3 install tern \
 
     # install swh.scanner
     # && pip3 install swh.scanner` \
@@ -71,6 +72,11 @@ RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/
         tar -zxC //opt/license-detector \
     && chmod a+x license-detector \
     && ln -s /opt/license-detector/license-detector /usr/local/bin/license-detector \
+
+    # install spdx tool jar
+    && curl -ksSL -o /opt/spdx-tools-${SPDX_TOOL_VERSION}-jar-with-dependencies.jar https://github.com/spdx/tools/releases/download/v${SPDX_TOOL_VERSION}/spdx-tools-${SPDX_TOOL_VERSION}-jar-with-dependencies.jar \
+    && echo "exec java -jar /opt/spdx-tools-${SPDX_TOOL_VERSION}-jar-with-dependencies.jar \$@" > /usr/local/bin/spdx-tools-java \
+    && chmod +x /usr/local/bin/spdx-tools-java \
 
     # install owasp dependency-check
     && cd /opt \
@@ -103,8 +109,13 @@ ADD findDefinitionFiles.sh /usr/local/bin
 ################################################################################
 ################################################################################
 ################################################################################
+FROM octrc-base as octrc
 
 RUN set -x \
+
+    # install rake
+    && gem install rake \
+
     && mkdir -p /inputs /outputs
 WORKDIR /
 
@@ -113,5 +124,3 @@ ENTRYPOINT /usr/local/bin/octrc.entrypoint.sh
 
 ENV OCTRC_INPUT=/input
 ADD octrc/octrc.Rakefile /
-RUN set -x \
-    && rake --rakefile /octrc.Rakefile --directory /outputs -T

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+basetag="octrc-base:latest"
 tag="octrc:latest"
 
 prepareDotOrt() {
@@ -66,7 +67,11 @@ buildImage() {
 
      docker build \
          -f ./octrc.Dockerfile \
-         --tag octrc ..
+         --target octrc-base \
+         --tag $basetag ..
+     docker build \
+         -f ./octrc.Dockerfile \
+         --tag $tag ..
     )
 }
 
