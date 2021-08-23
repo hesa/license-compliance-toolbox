@@ -35,11 +35,11 @@
     "ort": {
       "flake": false,
       "locked": {
-        "lastModified": 1629703047,
-        "narHash": "sha256-m4BleLXrrsAJpX9K5jHkkAJZ/jQOwBHKXw84fjDCLaA=",
+        "lastModified": 1629727363,
+        "narHash": "sha256-QnSVU+/r9GNgcU68dGe3vTPFAnGs5iND9tZPoupQaSk=",
         "owner": "oss-review-toolkit",
         "repo": "ort",
-        "rev": "3f7bb3864d56425e05a1a7ea036cb32b68fd0581",
+        "rev": "f4a0ea166372635fe0bf0651dabc6928611118e4",
         "type": "github"
       },
       "original": {
