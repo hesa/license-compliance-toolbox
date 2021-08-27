@@ -105,14 +105,14 @@ if [[ "$1" == "--build" ]]; then
     buildImage
 fi
 
-if [[ "$1" == "--help" ]]; then
-    docker run -it --rm octrc --help
-    exit 1
-fi
-
 if [[ $# -eq 0 ]]; then
     echo "no further arguments -> exit"
     exit 0
+fi
+
+if [[ "$1" == "--help" ]]; then
+    docker run -it --rm octrc --help
+    exit 1
 fi
 
 prepareDotOrt

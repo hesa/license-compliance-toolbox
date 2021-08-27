@@ -10,7 +10,7 @@ RUN set -x \
 FROM ort:latest as octrc-base
 
 RUN set -x \
-    && rm -rf /usr/local/scancode-toolkit-$SCANCODE_VERSION \
+    # && rm -rf /usr/local/scancode-toolkit-$SCANCODE_VERSION \
     && rm /usr/local/bin/scancode
 ARG SCANCODE_VERSION=21.8.4
 ARG LICENSE_DETECTOR_VERSION=v4.2.0

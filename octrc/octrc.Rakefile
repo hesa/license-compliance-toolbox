@@ -44,7 +44,8 @@ GITIGNORE
     puts "ort download ..."
     sh "ort download"\
        " -i #{t.source}"\
-       " -o #{t.name}"
+       " -o #{t.name}"\
+       " || [ -d #{t.name} ]"
   end
 
   file "#{ortOutput}/scan-result.yml" => "#{ortOutput}/analyzer-result.yml" do |t|
@@ -62,7 +63,7 @@ GITIGNORE
        " -f #{ortReportFormats}"\
        " -i #{t.source}"\
        " -o #{t.name}"\
-       " || [ -d #{t.name}/scan-report-web-app.html ]"
+       " || [ -f #{t.name}/scan-report-web-app.html ]"
   end
 
   file "#{ortOutput}/scan-result-reports" => "#{ortOutput}/scan-result.yml" do |t|
@@ -71,7 +72,7 @@ GITIGNORE
        " -f #{ortReportFormats}"\
        " -i #{t.source}"\
        " -o #{t.name}"\
-       " || [ -d #{t.name}/scan-report-web-app.html ]"
+       " || [ -f #{t.name}/scan-report-web-app.html ]"
   end
 
   task :analyze => ["#{ortOutput}/.gitignore",

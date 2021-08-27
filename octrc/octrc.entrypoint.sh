@@ -17,4 +17,6 @@ if [[ "$1" == "--help" ]]; then
     exit 0
 fi
 
+export GOPATH=$HOME/go # https://github.com/oss-review-toolkit/ort/issues/4407
+
 runAll $@
