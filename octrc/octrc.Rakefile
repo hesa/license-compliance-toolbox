@@ -11,9 +11,45 @@ file "#{output}/src" => input do |t|
 end
 
 namespace "ort" do
+  ##############################################################################
+  ##  functions  ###############################################################
+  ##############################################################################
+  def mk_ort_cmd(input, output, args)
+    cmd = "ort --force-overwrite --info"
+    cmd += " #{args.join(" ")}"
+    cmd += " -i #{input}"
+    cmd += " -o #{output}"
+  end
+
+  def ort_analyze(input_dir, output_file)
+    puts "ort analyzer ..."
+    cmd = mk_ort_cmd(input_dir, File.dirname(output_file), ["-P ort.analyzer.allowDynamicVersions=true", "analyze", "--output-formats JSON,YAML"])
+    sh "#{cmd} || [ -f #{output_file} ]"
+  end
+
+  def ort_download(input_file, output_dir)
+    puts "ort download ..."
+    cmd = mk_ort_cmd(input_file, output_dir, ["download"])
+    sh "#{cmd} || [ -d #{output_dir} ]"
+  end
+
+  def ort_scan(scanner, input_file, output_file)
+    puts "ort scan with #{scanner} ..."
+    cmd = mk_ort_cmd(input_file, File.dirname(output_file), ["scan", "--output-formats JSON,YAML", "-s #{scanner}"])
+    sh "#{cmd} || [ -f #{output_file} ]"
+  end
+
+  def ort_report(input_file,output_dir)
+    puts "ort report for scan ..."
+    ortReportFormats="StaticHtml,WebApp,Excel,NoticeTemplate,SPDXDocument,GitLabLicensemodel,AsciiDocTemplate,CycloneDx,EvaluatedModel"
+    cmd = mk_ort_cmd(input_file, output_dir, ["report", "-f #{ortReportFormats}"])
+    sh "#{cmd} || [ -f #{output_dir}/scan-report-web-app.html ]"
+  end
+
+  ##############################################################################
+  ##  tasks  ###################################################################
+  ##############################################################################
   ortOutput="#{output}/ort"
-  ort="ort --force-overwrite --info"
-  ortReportFormats="StaticHtml,WebApp,Excel,NoticeTemplate,SPDXDocument,GitLabLicensemodel,AsciiDocTemplate,CycloneDx,EvaluatedModel"
 
   file "#{ortOutput}/.gitignore" do |t|
     sh "mkdir -p #{ortOutput}"
@@ -23,14 +59,9 @@ downloads
 GITIGNORE
     File.open(t.name, 'w') { |file| file.write(gitignore) }
   end
+
   file "#{ortOutput}/analyzer-result.yml" => "#{output}/src" do |t|
-    puts "ort analyzer ..."
-    sh "#{ort} -P ort.analyzer.allowDynamicVersions=true analyze"\
-       " --clearly-defined-curations"\
-       " --output-formats JSON,YAML"\
-       " -i #{t.source}"\
-       " -o #{File.dirname(t.name)}"\
-       " || [ -f #{t.name} ]"
+    ort_analyze(t.source, t.name)
   end
 
   file "#{ortOutput}/analyzer-result.packages" => "#{ortOutput}/analyzer-result.yml" do |t|
@@ -41,38 +72,19 @@ GITIGNORE
   end
 
   file "#{ortOutput}/downloads" => "#{ortOutput}/analyzer-result.yml" do |t|
-    puts "ort download ..."
-    sh "ort download"\
-       " -i #{t.source}"\
-       " -o #{t.name}"\
-       " || [ -d #{t.name} ]"
+    ort_download(t.source, t.name)
   end
 
   file "#{ortOutput}/scan-result.yml" => "#{ortOutput}/analyzer-result.yml" do |t|
-    puts "ort scan ..."
-    sh "#{ort} scan"\
-       " --output-formats JSON,YAML"\
-       " -i #{t.source}"\
-       " -o #{File.dirname(t.name)}"\
-       " || [ -f #{t.name} ]"
+    ort_scan("Scancode", t.source, t.name)
   end
 
   file "#{ortOutput}/analyzer-result-reports" => "#{ortOutput}/analyzer-result.yml" do |t|
-    puts "ort report for analzyer ..."
-    sh "#{ort} report"\
-       " -f #{ortReportFormats}"\
-       " -i #{t.source}"\
-       " -o #{t.name}"\
-       " || [ -f #{t.name}/scan-report-web-app.html ]"
+    ort_report(t.source,t.name)
   end
 
   file "#{ortOutput}/scan-result-reports" => "#{ortOutput}/scan-result.yml" do |t|
-    puts "ort report for scan ..."
-    sh "#{ort} report"\
-       " -f #{ortReportFormats}"\
-       " -i #{t.source}"\
-       " -o #{t.name}"\
-       " || [ -f #{t.name}/scan-report-web-app.html ]"
+    ort_report(t.source,t.name)
   end
 
   task :analyze => ["#{ortOutput}/.gitignore",
@@ -81,16 +93,16 @@ GITIGNORE
                     "#{ortOutput}/analyzer-result-reports",
                    ]
   task :all => [:analyze,
-                "#{ortOutput}/downloads",
                 "#{ortOutput}/scan-result.yml",
-                "#{ortOutput}/scan-result-reports"
+                "#{ortOutput}/scan-result-reports",
+                "#{ortOutput}/downloads"
                ]
 end
 
 namespace "scancode" do
   file "#{output}/scancode/scancode.json" => "#{output}/src" do |t|
     puts "scancode ..."
-    sh "scancode.scan.sh #{t.source} #{File.dirname(t.name)}"
+    sh "scancode.scan.sh #{t.source} #{File.dirname(t.name)} || [[ -f #{t.name} ]]"
   end
   file "#{output}/scancode/scancode.packages.csv" => "#{output}/scancode/scancode.json" do |t|
     sh "scancode.genPackagesCsv.sh #{t.source} > #{t.name}"
@@ -137,7 +149,7 @@ end
 
 namespace "metadata" do
   file "#{output}/cmff" => "#{output}/src" do |t|
-    sh "cmff.sh #{t.source} #{t.name}"
+    sh "[ -d #{t.name} ] || cmff.sh #{t.source} #{t.name}"
   end
 
   file "#{output}/exiftool.json" => "#{output}/src" do |t|
@@ -145,7 +157,7 @@ namespace "metadata" do
   end
 
   file "#{output}/definitionFiles" => "#{output}/src" do |t|
-    sh "findDefinitionFiles.sh  #{t.source} #{t.name}"
+    sh "[ -d #{t.name} ] || findDefinitionFiles.sh  #{t.source} #{t.name}"
   end
 
   multitask :run => ["#{output}/cmff",
@@ -182,7 +194,7 @@ namespace "yacp" do
        # " --scanoss #{output}/scanoss/scanoss.json"\
   end
 
-  multitask :run => ["#{output}/yacp"]
+  multitask :run => ["#{output}/yacp/_state.json"]
 end
 
 desc "collect all the data"
