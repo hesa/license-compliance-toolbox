@@ -9,10 +9,6 @@ RUN set -x \
 
 FROM ort:latest as octrc-base
 
-RUN set -x \
-    # && rm -rf /usr/local/scancode-toolkit-$SCANCODE_VERSION \
-    && rm /usr/local/bin/scancode
-ARG SCANCODE_VERSION=21.8.4
 ARG LICENSE_DETECTOR_VERSION=v4.2.0
 ARG SCANOSS_VERSION=1.3.4
 ARG DEPENDENCY_CHECK_VERSION=6.2.2
@@ -23,17 +19,9 @@ ENV JAVA_OPTS "-Xms2048M -Xmx16g -XX:MaxPermSize=4096m -XX:MaxMetaspaceSize=4g"
 RUN set -x \
  && ssh-keygen -b 2048 -t rsa -f ~/.ssh/id_rsa -q -N ""
 
-RUN set -x \
-    && curl -ksSL https://github.com/nexB/scancode-toolkit/archive/v$SCANCODE_VERSION.tar.gz | \
-        tar -zxC /opt \
-    && cd /opt/scancode-toolkit-$SCANCODE_VERSION \
-    # Trigger ScanCode configuration for Python 3 and reindex licenses initially.
-    && PYTHON_EXE=/usr/bin/python3 /opt/scancode-toolkit-$SCANCODE_VERSION/scancode --reindex-licenses \
-    && chmod -R o=u /opt/scancode-toolkit-$SCANCODE_VERSION \
-    && ln -snf /opt/scancode-toolkit-$SCANCODE_VERSION/scancode /usr/local/bin/scancode \
-    && ln -snf /opt/scancode-toolkit-$SCANCODE_VERSION/extractcode /usr/local/bin/extractcode
-
 RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/apt set -x \
+
+    && source /etc/ort/bash_bootstrap \
 
     && ln -s /opt/ort/bin/ort /usr/local/bin/ort \
     && ln -s /opt/ort/bin/orth /usr/local/bin/orth \
@@ -114,6 +102,7 @@ FROM octrc-base as octrc
 RUN set -x \
 
     # install rake
+    && source /etc/ort/bash_bootstrap \
     && gem install rake \
 
     && mkdir -p /inputs /outputs
